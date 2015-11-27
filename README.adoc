@@ -1,4 +1,4 @@
-= Text Console Library for Arduino =
+= EDesignsForge-TextConsole, Text Console library for Arduino. =
 
 The Text Console Library enables an Arduino board to react as a command/response console using a stream.
 
