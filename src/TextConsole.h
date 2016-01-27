@@ -32,6 +32,12 @@
 #define  TEXTCONSOLE_VERSION_MAJOR	1
 #define  TEXTCONSOLE_VERSION_MINOR	0
 
+// Frame headers
+#define  TEXTCONSOLE_RESPONSEHEADER   ""
+#define  TEXTCONSOLE_RESPONSETAIL     TEXTCONSOLE_EOLN
+#define  TEXTCONSOLE_EVENTHEADER      "<"
+#define  TEXTCONSOLE_EVENTTAIL        TEXTCONSOLE_EOLN
+
 // Result code strings
 #define  TEXTCONSOLE_RESCODE_OK       "[:)]"
 #define  TEXTCONSOLE_RESCODE_WARN     "[:O]"
@@ -45,6 +51,7 @@
 #define  TEXTCONSOLE_CMDTOOLONG       "Too long"
 #define  TEXTCONSOLE_CMDNOTFOUND      "Not found"
 #define  TEXTCONSOLE_CMDARGSCOUNT     "Args count"
+#define  TEXTCONSOLE_CMDNOMEMORY      "No memory"
 #define  TEXTCONSOLE_CMDINCOMPLETEARG "Incomplete"
 #define  TEXTCONSOLE_CMDARGOVERFLOW   "Overflow"
 #define  TEXTCONSOLE_CMDARGOUTOFRANGE "Out of range"
@@ -67,6 +74,9 @@ struct ConsoleCommandEntry {
 };
 
 
+#define	sendPartialResponse( ... )		send( __VA_ARGS__ )
+
+
 class TextConsole
 {
   public:
@@ -85,17 +95,23 @@ class TextConsole
     void sendResponse( CommandResponseType_t ResponseType, const char* lpResponse );
     void sendResponse( CommandResponseType_t ResponseType );
     
-    void beginResponse( CommandResponseType_t ResponseType );
-    void sendPartialResponse( const __FlashStringHelper *ifsh );
-    void sendPartialResponse( const char* lpResponse );
-    void sendPartialResponse( const uint8_t* lpSrc, int Count );
-	void sendPartialResponse( int Value );
-	void sendPartialResponse( float Value )  { m_IOStream.print( Value ); }
-	void sendPartialResponse( unsigned int Value );
-	void sendPartialResponse( long Value ) { m_IOStream.print( Value ); }
-	void sendPartialResponse( unsigned long Value ) { m_IOStream.print( Value ); }
-    void endResponse();
 	void beginResponse();
+    void beginResponse( CommandResponseType_t ResponseType );
+	
+	void beginEvent();
+	void endEvent();
+	
+    void send( const __FlashStringHelper *ifsh );
+    void send( const char* lpResponse );
+    void send( const uint8_t* lpSrc, int Count );
+	void send( int Value );
+	void send( float Value )  { m_IOStream.print( Value ); }
+	void send( double Value )  { m_IOStream.print( Value ); }
+	void send( unsigned int Value );
+	void send( long Value ) { m_IOStream.print( Value ); }
+	void send( unsigned long Value ) { m_IOStream.print( Value ); }
+	
+    void endResponse();
 	void endResponse( CommandResponseType_t ResponseType );
     
     int argsCount() { return m_ArgsCount; };
@@ -119,6 +135,8 @@ class TextConsole
     int  m_Arguments[ TEXTCONSOLE_MAXARGUMENTS ];
     char m_PrevChar;
     bool m_ReadingQuotedString;
+	bool m_SendingEvent;
+	bool m_SendingResponse;
 };
 
 

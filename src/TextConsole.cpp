@@ -50,7 +50,7 @@ void TextConsole::begin( const __FlashStringHelper *ifshWelcome )
 {
   reset();
   m_IOStream.print( ifshWelcome );
-  m_IOStream.write( TEXTCONSOLE_EOLN );
+  m_IOStream.print( F(TEXTCONSOLE_EOLN) );
 }
 
 
@@ -58,14 +58,14 @@ void TextConsole::begin( const char* lpWelcome )
 {
   reset();
   m_IOStream.print( lpWelcome );
-  m_IOStream.write( TEXTCONSOLE_EOLN );
+  m_IOStream.print( F(TEXTCONSOLE_EOLN) );
 }
 
 
 void TextConsole::begin()
 {
   reset();
-  m_IOStream.write( TEXTCONSOLE_EOLN );
+  m_IOStream.print( F(TEXTCONSOLE_EOLN) );
 }
 
 
@@ -92,12 +92,17 @@ const struct ConsoleCommandEntry* TextConsole::findCommand( const char* lpName )
 
 void TextConsole::reset()
 {
+  while (m_IOStream.available())
+    m_IOStream.read();
+  
   // Restart!
   m_BuffPos = 0;
   m_lpCurCommand = NULL;
   m_ProcessingCommand = false;
   m_PrevChar = (char)-1; //'\0';
   m_ReadingQuotedString = false;
+  m_SendingEvent = false;
+  m_SendingResponse = false;
 }
 
 
@@ -172,6 +177,7 @@ bool TextConsole::handleInput()
         {
           m_ProcessingCommand = true;
           m_lpCurCommand->Method( this );
+		  m_ProcessingCommand = false;
 		  m_PreviuousCommand = m_lpCurCommand;
           reset();
           while (m_IOStream.peek() == '\n')
@@ -223,7 +229,7 @@ void TextConsole::sendResponse( CommandResponseType_t ResponseType, const __Flas
   m_PreviuousCommandResult = ResponseType;
   m_IOStream.print( ifsh );
   /*
-  m_IOStream.write( TEXTCONSOLE_EOLN );
+  m_IOStream.print( F(TEXTCONSOLE_EOLN) );
   m_ProcessingCommand = false;
   //sendResponse( ResponseType, reinterpret_cast<const char *>(ifsh) );
   */
@@ -243,7 +249,7 @@ void TextConsole::sendResponse( CommandResponseType_t ResponseType, const char* 
   m_PreviuousCommandResult = ResponseType;
   m_IOStream.write( lpResponse );
   /*
-  m_IOStream.write( TEXTCONSOLE_EOLN );
+  m_IOStream.print( F(TEXTCONSOLE_EOLN) );
   m_ProcessingCommand = false;
   */
   endResponse();
@@ -270,35 +276,61 @@ void TextConsole::beginResponse( CommandResponseType_t ResponseType )
 }
 
 
+void TextConsole::beginEvent()
+{
+	if (!m_SendingEvent)
+	{
+		m_SendingEvent = true;
+		m_IOStream.print( F(TEXTCONSOLE_EVENTHEADER ) );
+	}
+}
+
+
+void TextConsole::endEvent()
+{
+	if (m_SendingEvent)
+	{
+		m_SendingEvent = false;
+		m_IOStream.print( F(TEXTCONSOLE_EVENTTAIL ) );
+	}
+}
+
+
 void TextConsole::beginResponse()
-{}
+{
+	if (!m_SendingResponse)
+	{
+		m_SendingResponse = true;
+		m_IOStream.print( F(TEXTCONSOLE_RESPONSEHEADER) );
+	}
+}
 
 
-void TextConsole::sendPartialResponse( const __FlashStringHelper *ifsh )
+void TextConsole::send( const __FlashStringHelper *ifsh )
 {
   m_IOStream.print( ifsh );
 }
 
 
-void TextConsole::sendPartialResponse( const char* lpResponse )
+void TextConsole::send( const char* lpResponse )
 {
   m_IOStream.write( lpResponse );
 }
 
 
-void TextConsole::sendPartialResponse( const uint8_t* lpSrc, int Count )
+void TextConsole::send( const uint8_t* lpSrc, int Count )
 {
   m_IOStream.write( lpSrc, Count );
 }
 
 
-void TextConsole::sendPartialResponse( int Value )
+void TextConsole::send( int Value )
 {
 	m_IOStream.print( Value );
 }
 
 
-void TextConsole::sendPartialResponse( unsigned int Value )
+void TextConsole::send( unsigned int Value )
 {
 	m_IOStream.print( Value );
 }
@@ -306,15 +338,15 @@ void TextConsole::sendPartialResponse( unsigned int Value )
 
 void TextConsole::endResponse()
 {
-  m_IOStream.write( TEXTCONSOLE_EOLN );
+  m_IOStream.print( F(TEXTCONSOLE_EOLN) );
   
   if (m_PreviuousCommandResult < 3)
   {
     m_IOStream.write( HEADERS[ (int)m_PreviuousCommandResult ] );
-	m_IOStream.write( TEXTCONSOLE_EOLN );
   }
   
-  m_ProcessingCommand = false;
+  m_IOStream.print( F(TEXTCONSOLE_RESPONSETAIL ) );
+  m_SendingResponse = false;
 }
 
 
